@@ -1,0 +1,281 @@
+{
+  "id": "8",
+  "jsonrpc": "2.0",
+  "result": [
+    [
+      {
+        "enabledFeatures": [
+          "Async DNS",
+          "BitTorrent",
+          "Firefox3 Cookie",
+          "GZip",
+          "HTTPS",
+          "Message Digest",
+          "Metalink",
+          "XML-RPC"
+        ],
+        "version": "1.37.0"
+      }
+    ],
+    [
+      {
+        "downloadSpeed": "1459114",
+        "numActive": "2",
+        "numStopped": "2",
+        "numStoppedTotal": "2",
+        "numWaiting": "0",
+        "uploadSpeed": "0"
+      }
+    ],
+    [
+      {
+        "allow-overwrite": "false",
+        "allow-piece-length-change": "false",
+        "always-resume": "true",
+        "async-dns": "true",
+        "auto-file-renaming": "true",
+        "auto-save-interval": "60",
+        "bt-detach-seed-only": "false",
+        "bt-enable-hook-after-hash-check": "true",
+        "bt-enable-lpd": "false",
+        "bt-force-encryption": "false",
+        "bt-hash-check-seed": "true",
+        "bt-load-saved-metadata": "false",
+        "bt-max-open-files": "100",
+        "bt-max-peers": "55",
+        "bt-metadata-only": "false",
+        "bt-min-crypto-level": "plain",
+        "bt-remove-unselected-file": "false",
+        "bt-request-peer-speed-limit": "51200",
+        "bt-require-crypto": "false",
+        "bt-save-metadata": "false",
+        "bt-seed-unverified": "false",
+        "bt-stop-timeout": "0",
+        "bt-tracker-connect-timeout": "60",
+        "bt-tracker-interval": "0",
+        "bt-tracker-timeout": "60",
+        "ca-certificate": "/etc/ssl/certs/ca-certificates.crt",
+        "check-certificate": "true",
+        "check-integrity": "false",
+        "conditional-get": "false",
+        "conf-path": "/root/.config/aria2/aria2.conf",
+        "connect-timeout": "60",
+        "console-log-level": "warn",
+        "content-disposition-default-utf8": "false",
+        "continue": "false",
+        "daemon": "false",
+        "deferred-input": "false",
+        "dht-file-path": "/root/.cache/aria2/dht.dat",
+        "dht-file-path6": "/root/.cache/aria2/dht6.dat",
+        "dht-listen-port": "6881-6999",
+        "dht-message-timeout": "10",
+        "dir": "/downloads",
+        "disable-ipv6": "false",
+        "disk-cache": "16777216",
+        "download-result": "default",
+        "dry-run": "false",
+        "dscp": "0",
+        "enable-color": "true",
+        "enable-dht": "true",
+        "enable-dht6": "false",
+        "enable-http-keep-alive": "true",
+        "enable-http-pipelining": "false",
+        "enable-mmap": "false",
+        "enable-peer-exchange": "true",
+        "enable-rpc": "true",
+        "event-poll": "epoll",
+        "file-allocation": "prealloc",
+        "follow-metalink": "true",
+        "follow-torrent": "true",
+        "force-save": "false",
+        "ftp-pasv": "true",
+        "ftp-reuse-connection": "true",
+        "ftp-type": "binary",
+        "hash-check-only": "false",
+        "help": "#basic",
+        "http-accept-gzip": "false",
+        "http-auth-challenge": "false",
+        "http-no-cache": "false",
+        "human-readable": "true",
+        "keep-unfinished-download-result": "true",
+        "listen-port": "6881-6999",
+        "log-level": "debug",
+        "lowest-speed-limit": "0",
+        "max-concurrent-downloads": "2",
+        "max-connection-per-server": "1",
+        "max-download-limit": "0",
+        "max-download-result": "1000",
+        "max-file-not-found": "0",
+        "max-mmap-limit": "9223372036854775807",
+        "max-overall-download-limit": "2000000",
+        "max-overall-upload-limit": "0",
+        "max-resume-failure-tries": "0",
+        "max-tries": "5",
+        "max-upload-limit": "0",
+        "metalink-enable-unique-protocol": "true",
+        "metalink-preferred-protocol": "none",
+        "min-split-size": "20971520",
+        "min-tls-version": "TLSv1.2",
+        "netrc-path": "/root/.netrc",
+        "no-conf": "false",
+        "no-file-allocation-limit": "5242880",
+        "no-netrc": "false",
+        "no-want-digest-header": "false",
+        "optimize-concurrent-downloads": "false",
+        "parameterized-uri": "false",
+        "pause-metadata": "false",
+        "peer-agent": "aria2/1.37.0",
+        "peer-id-prefix": "A2-1-37-0-",
+        "piece-length": "1048576",
+        "proxy-method": "get",
+        "quiet": "false",
+        "realtime-chunk-checksum": "true",
+        "remote-time": "false",
+        "remove-control-file": "false",
+        "retry-wait": "0",
+        "reuse-uri": "true",
+        "rlimit-nofile": "1024",
+        "rpc-allow-origin-all": "false",
+        "rpc-listen-all": "true",
+        "rpc-listen-port": "6800",
+        "rpc-max-request-size": "2097152",
+        "rpc-save-upload-metadata": "true",
+        "rpc-secure": "false",
+        "save-not-found": "true",
+        "save-session-interval": "0",
+        "seed-ratio": "1.0",
+        "server-stat-timeout": "86400",
+        "show-console-readout": "true",
+        "show-files": "false",
+        "socket-recv-buffer-size": "0",
+        "split": "5",
+        "stderr": "false",
+        "stop": "0",
+        "stream-piece-selector": "default",
+        "summary-interval": "60",
+        "timeout": "60",
+        "truncate-console-readout": "true",
+        "uri-selector": "feedback",
+        "use-head": "false",
+        "user-agent": "aria2/1.37.0"
+      }
+    ],
+    [
+      [
+        {
+          "completedLength": "1916928",
+          "dir": "/downloads/iso",
+          "downloadSpeed": "1317857",
+          "files": [
+            {
+              "completedLength": "1048576",
+              "index": "1",
+              "length": "209715200",
+              "path": "/downloads/iso/big.iso",
+              "selected": "true",
+              "uris": [
+                {
+                  "status": "used",
+                  "uri": "http://files.example.com/big.iso"
+                },
+                {
+                  "status": "waiting",
+                  "uri": "http://files.example.com/big.iso"
+                }
+              ]
+            }
+          ],
+          "gid": "17723d4955052c56",
+          "status": "active",
+          "totalLength": "209715200",
+          "uploadSpeed": "0"
+        },
+        {
+          "completedLength": "16384",
+          "dir": "/downloads",
+          "downloadSpeed": "80199",
+          "files": [
+            {
+              "completedLength": "0",
+              "index": "1",
+              "length": "204800",
+              "path": "/downloads/small.1.bin",
+              "selected": "true",
+              "uris": [
+                {
+                  "status": "used",
+                  "uri": "http://files.example.com/small.bin?copy=2"
+                }
+              ]
+            }
+          ],
+          "gid": "315c4bc6d6a5ade9",
+          "status": "active",
+          "totalLength": "204800",
+          "uploadSpeed": "0"
+        }
+      ]
+    ],
+    [[]],
+    [
+      [
+        {
+          "completedLength": "204800",
+          "dir": "/downloads",
+          "downloadSpeed": "0",
+          "errorCode": "0",
+          "errorMessage": "",
+          "files": [
+            {
+              "completedLength": "204800",
+              "index": "1",
+              "length": "204800",
+              "path": "/downloads/small.bin",
+              "selected": "true",
+              "uris": [
+                {
+                  "status": "used",
+                  "uri": "http://files.example.com/small.bin"
+                },
+                {
+                  "status": "waiting",
+                  "uri": "http://files.example.com/small.bin"
+                }
+              ]
+            }
+          ],
+          "gid": "2bdf5c53ce303f7e",
+          "status": "complete",
+          "totalLength": "204800",
+          "uploadSpeed": "0"
+        },
+        {
+          "completedLength": "0",
+          "dir": "/downloads",
+          "downloadSpeed": "0",
+          "errorCode": "3",
+          "errorMessage": "Resource not found",
+          "files": [
+            {
+              "completedLength": "0",
+              "index": "1",
+              "length": "0",
+              "path": "",
+              "selected": "true",
+              "uris": [
+                {
+                  "status": "used",
+                  "uri": "http://files.example.com/missing.zip"
+                }
+              ]
+            }
+          ],
+          "gid": "14a4f7a08289886e",
+          "status": "error",
+          "totalLength": "0",
+          "uploadSpeed": "0"
+        }
+      ]
+    ]
+  ]
+}
