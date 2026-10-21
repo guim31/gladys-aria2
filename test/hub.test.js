@@ -355,9 +355,11 @@ test('no request ever removes a download or purges the results', async (t) => {
 });
 
 test('the secret never leaves in clear outside the RPC body', async (t) => {
-  const w = await world(t, { config: { ...CONFIG, rpc_secret: 'hunter2' } });
-  w.aria2.secret = 'hunter2';
-  await w.hub.pollAll();
+  const w = await world(t, {
+    aria2: new FakeAria2({ secret: 'hunter2' }),
+    config: { ...CONFIG, rpc_secret: 'hunter2' },
+  });
+  assert.equal(w.fake.connectionStatus.connected, true);
   assert.ok(!JSON.stringify(w.fake.discoveredDevices).includes('hunter2'));
   assert.ok(!JSON.stringify(w.fake.connectionStatuses).includes('hunter2'));
   assert.ok(!w.hub.record.server.wsUrl.includes('hunter2'));

@@ -30,6 +30,22 @@ Gladys before reporting a problem.
 
 In scope: the code of this repository and the Docker image it publishes.
 
+What the integration handles:
+
+- **Secret**: the aria2 RPC secret (`--rpc-secret`), stored by Gladys in the
+  integration configuration. It is sent only to the configured aria2 address,
+  inside the JSON-RPC body, and never written to the logs, the device
+  parameters or the connection status. An address with credentials in it
+  (`http://user:pass@…`) is refused.
+- **Nothing is written** under `/data`: the integration keeps no state on
+  disk.
+- **Network**: HTTP(S) and WebSocket requests to the configured aria2 address
+  only (the local network in the usual case). No cloud service.
+- **Commands**: pause, resume, the global download limit, and adding a link
+  from a scene (http, https, ftp, sftp, magnet; an absolute folder without
+  `..`). Whoever can edit a Gladys scene can make aria2 download a link. No
+  code path removes a download or a file, or shuts aria2 down.
+
 Out of scope: Gladys Assistant itself (see its
 [security policy](https://github.com/GladysAssistant/Gladys/security/policy)),
-and the third-party services and devices the integration talks to.
+and aria2 itself.

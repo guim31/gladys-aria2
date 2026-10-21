@@ -1,61 +1,199 @@
-# Demo Devices Template
+# aria2
 
-This is the user documentation of the integration. Gladys re-hosts this file
-and shows a permanent **Documentation** link to it in the Configuration screen
-(in the user's language, with English as the fallback) — it is when
-configuring that the user needs it most. Keep the short onboarding hints in
-the `section` blocks of the manifest `config_schema`; put the long
-step-by-step (screenshots, troubleshooting…) here.
+Follow and control **aria2**, the lightweight download utility (HTTP, FTP,
+SFTP, BitTorrent, Metalink), from Gladys, over your local network. See the
+download and upload speeds and the downloads in progress, pause everything or
+slow it down when a film starts on the TV, add a link from a scene, and get a
+notification when a download is finished or fails.
 
-## What you get
+> **Tested on a real aria2, not yet in a real home: feedback welcome.**
+> This integration was tested against aria2 1.37.0 running next to it, with
+> real downloads (finished, failed, paused), but not yet in a real Gladys
+> installation with your NAS, your reverse proxy or your front-end (AriaNg,
+> Motrix…). If something does not work as described, please say so on the
+> [Gladys forum](https://community.gladysassistant.com) or in the
+> [issues](https://github.com/guim31/gladys-aria2/issues).
 
-Six demo devices show up after installation: a weather station (real data
-from Open-Meteo), a switch, a dimmable light, a smart plug with power
-metering, a motion sensor and a camera.
+The integration never removes a download nor a file. Its commands are pause,
+resume, the download speed limit and adding a link.
 
-## Configuration
+## What you need
 
-1. Open the **Configuration** tab of the integration.
-2. Set the **latitude** and **longitude** the demo weather station should
-   observe (they default to Paris), and pick your temperature unit.
-   The **refresh interval** sets how often the weather station and the
-   plug's power are read: every 5 minutes by default, every minute at most.
-3. Save: the devices appear in the **Discovery** tab, ready to be added.
+- Gladys Assistant 5.1.0 or later.
+- aria2 1.18 or later started with its RPC interface on, reachable from Gladys:
+  `aria2c --enable-rpc --rpc-listen-all --rpc-secret=<a secret>`, or the same
+  options in `aria2.conf` (`enable-rpc=true`, `rpc-listen-all=true`,
+  `rpc-secret=…`). The Docker images (`p3terx/aria2-pro`…) and NAS packages do
+  it with a `RPC_SECRET` variable or a setting.
+- The **RPC secret** (`--rpc-secret`), the one you type in AriaNg as _secret
+  token_. aria2 also works without one, but anyone on your network could then
+  drive it.
 
-The **Prefer the local connection** toggle drives the demo plug: it reports
-the channel it actually uses as a badge (local or cloud), with an orange dot
-when it runs degraded (local refused, cloud fallback).
+`--rpc-listen-all` matters: without it, aria2 only answers on `localhost`, and
+Gladys runs in another container.
 
-## Actions
+## Set up
 
-- **Test the weather provider** — performs a live request to Open-Meteo and
-  shows the current temperature and humidity under the button.
-- **Identify a device** — pick one of your devices in the list and it will
-  signal itself (the demo light "blinks" in the logs).
+1. Install the integration from the Gladys catalog.
+2. In **Configuration**, enter the **RPC address** of aria2 (for example
+   `192.168.1.10:6800`; port 6800 when none is typed) and the **RPC secret**,
+   and optionally a **Name**. The full URL works too, as AriaNg shows it:
+   `ws://192.168.1.10:6800/jsonrpc`, or `https://nas.example.com/aria2/jsonrpc`
+   behind a reverse proxy.
+3. Save, then click **Test the connection**: the message under the button says
+   whether aria2 answers, its version, its downloads, and whether the instant
+   notifications work.
+4. Open the **Discover** tab: one device, aria2. Click **Add**, pick a room,
+   save.
 
-## Scenes
+Options:
 
-The integration adds its own cards to the scene editor (Gladys 5.1 or
-later), under the **Integrations** category:
+- **"Slow down" limit (kB/s)**: the download speed of every download together
+  while _Slow down_ is on (1000 kB/s by default, that is 8 Mbit/s).
+- **Refresh interval**: how often aria2 is read, from 10 seconds to 2 minutes
+  (30 seconds by default). The scene triggers do not wait for it: aria2
+  notifies the integration at once.
+- **Accept self-signed certificates**: for aria2 served in HTTPS
+  (`--rpc-secure`) with its own certificate.
+- **Language of the device texts**: English, French, German or Spanish, for the
+  feature names (given when the device is added) and the list of downloads
+  (French by default).
 
-- **Motion detected** (trigger) — starts the scene when a demo motion sensor
-  sees something move. Optionally pick the sensor and what moved (person,
-  animal); left empty, any detection matches. The following actions can
-  read what moved with `{{triggerEvent.data.target}}`.
-- **Identify a device** (action) — makes the chosen device signal itself.
-  It returns whether the device could signal itself, so the following
-  actions can depend on it.
+## The aria2 device
+
+| Feature              | What it is                                                                |
+| -------------------- | ------------------------------------------------------------------------- |
+| Download speed       | Speed of all the downloads, in kB/s                                       |
+| Upload speed         | Speed of all the uploads (torrents sharing), in kB/s                      |
+| Active downloads     | Downloads receiving data                                                  |
+| Waiting downloads    | Downloads in the queue, waiting for a free slot or paused                 |
+| Completed downloads  | Downloads finished since aria2 started (a torrent still sharing included) |
+| Failed downloads     | Downloads stopped by an error since aria2 started                         |
+| Current downloads    | Text: the first three active downloads with their percentage              |
+| Pause all            | Switch: on pauses every download, off resumes them                        |
+| Slow down            | Switch: on sets the download limit of the configuration, off removes it   |
+| Download speed limit | The global download limit of aria2, in kB/s (0: none)                     |
+| aria2 connected      | 1 while aria2 answers, 0 when it does not                                 |
+
+_Completed downloads_ and _Failed downloads_ count what aria2 remembers: the
+results of the session (1000 at most, `--max-download-result`), until aria2
+restarts or they are purged from AriaNg. The metadata of a magnet link and the
+`.torrent` file of a download are not counted: only the real download.
+
+_Pause all_ is on when there is something left to download and all of it is
+paused. A link added while everything is paused starts at once: aria2 pauses
+what exists, not what comes next.
+
+_Slow down_ is on as soon as a global download limit is set, whoever set it
+(the switch, the widget, the _Set the download speed limit_ action, AriaNg).
 
 ## Dashboard
 
-Add the **Demo status** widget to a dashboard: it shows the live
-temperature of the weather station and the power of the office plug, the
-connection the plug currently uses (orange when degraded) and the observed
-location. Its **Identify the light** button makes the demo light signal
-itself.
+The **aria2 downloads** widget shows the download and upload speeds, the
+number of active downloads, the downloads in progress with their percentage
+and speed, and the waiting, completed and failed counts. Three buttons:
+
+- **Pause all**: pauses every download;
+- **Resume all**: resumes every download;
+- **Slow down**: sets the limit of the configuration, or removes the limit
+  when one is set (a check mark shows it).
+
+The widget works as soon as the integration is configured, even before the
+device is added.
+
+## Scenes
+
+### Triggers
+
+- **Download completed**: a download finished. A torrent counts as soon as it
+  is complete, while it keeps sharing, once. Variables: the file name, the
+  size in GB and the folder.
+- **Download failed**: aria2 stopped a download on an error (dead link, server
+  refusal, disk full…). Variables: the file name, the error message of aria2
+  and its [error code](https://aria2.github.io/manual/en/html/aria2c.html#exit-status)
+  (3: resource not found, 9: not enough disk space…).
+- **Nothing left to download**: the last active or waiting download ended
+  (completed, failed or removed). Paused downloads are still to do: pausing
+  everything does not fire it. Variables: the completed and failed counts of
+  the session.
+
+The downloads present when the integration starts are not announced. aria2
+notifies the integration through its WebSocket (same port as the RPC): the
+triggers fire within a second. Without the WebSocket (a reverse proxy that does
+not pass it), they fire at the next reading.
+
+### Actions
+
+- **Add a download link**: gives aria2 a link: `http`, `https`, `ftp`, `sftp`,
+  a `magnet:` link, or the address of a `.torrent` or `.metalink` file (aria2
+  then downloads what it describes). The **Folder** is optional: an absolute
+  path on the aria2 server (`/downloads/films`); empty, the default folder of
+  aria2. The output is the identifier (GID) of the new download.
+- **Pause every download**: pauses the active and waiting downloads.
+- **Resume every download**: resumes the paused downloads.
+- **Set the download speed limit**: the global limit of aria2 for every
+  download together, in kB/s, until changed; 0 removes it.
+
+### Scene ideas
+
+- **A film starts**: when the TV or the media player starts playing, turn
+  _Slow down_ on (a "control a device" action on the switch); when it stops,
+  off.
+- **Video call**: from a calendar event or a button, _Pause every download_,
+  then _Resume every download_ an hour later.
+- **Night downloads**: at 1 a.m., _Set the download speed limit_ to 0; at 8
+  a.m., to 2000.
+- **Film ready**: on _Download completed_, send a message
+  "{{triggerEvent.data.name}} is ready ({{triggerEvent.data.size_gb}} GB)".
+- **Dead link**: on _Download failed_, send "{{triggerEvent.data.name}}:
+  {{triggerEvent.data.error}}".
+- **Nothing left**: on _Nothing left to download_, turn off the NAS fan or let
+  the computer sleep.
+
+## Refresh and load
+
+The integration reads aria2 on its own timer (every 30 seconds by default),
+not through the Gladys poller, and right after each notification of aria2 (once
+per burst). One reading is one request (`system.multicall`) with only the
+fields used, for up to 1000 waiting and 1000 finished downloads. When aria2
+stops answering, it is read again 15 seconds later. A value that does not
+change is still sent to Gladys every 6 hours. The WebSocket reconnects on its
+own, after 5 seconds then up to 5 minutes.
+
+The API is local, without quota.
 
 ## Troubleshooting
 
-The integration logs everything it does: check the integration logs from the
-Gladys UI (or `docker logs` on the host) with `LOG_LEVEL=debug` for the full
-detail.
+- **"aria2 does not answer"**: check the address and the port from the Gladys
+  machine (`curl http://192.168.1.10:6800/jsonrpc` must get an answer),
+  that aria2 runs with `--enable-rpc` and `--rpc-listen-all`, and that the port
+  is published if aria2 runs in Docker.
+- **"secret refused"**: the RPC secret differs from `--rpc-secret`. Without a
+  secret on the aria2 side, leave the field empty.
+- **"no aria2 RPC at this address"**: something answers, but not aria2: often
+  the web page of AriaNg (port 6880) instead of the RPC (port 6800), or a path
+  missing behind a reverse proxy.
+- **"certificate refused"**: tick _Accept self-signed certificates_.
+- **"no instant notifications"** in the test report: the WebSocket is refused,
+  often by a reverse proxy without WebSocket support. Everything works, at the
+  refresh interval.
+- **"command refused by aria2"**: aria2 did not accept the link (unknown
+  scheme, invalid address) or the folder. Its reason is in the logs of the
+  integration.
+- **More details**: set the `LOG_LEVEL=debug` environment variable on the
+  container to see every reading and notification in the logs. The secret and
+  the links are never written (only the host of a link).
+
+## Limits
+
+- One aria2 server. One device, not one per download.
+- No removal of downloads or files, by design.
+- The speeds and the limit are those of the whole of aria2, not of one
+  download.
+- The completed and failed counts are those of the aria2 session: they start
+  again from zero when aria2 restarts.
+- A download added then removed between two readings, while the WebSocket is
+  off, is not seen.
+- Feature names are set when the device is added: changing the language later
+  renames nothing in Gladys.
+- Not affiliated with the aria2 project.

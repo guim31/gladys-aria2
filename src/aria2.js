@@ -43,10 +43,15 @@ const toNumber = (value) => {
   return Number.isFinite(number) && number >= 0 ? number : 0;
 };
 
-/** The last part of a path or URL, without its query. */
-function baseName(text) {
-  const clean = String(text).split(/[?#]/)[0].replace(/\/+$/, '');
-  const name = clean.slice(clean.lastIndexOf('/') + 1);
+/** The last part of a path. */
+const baseName = (path) => {
+  const clean = String(path).replace(/\/+$/, '');
+  return clean.slice(clean.lastIndexOf('/') + 1);
+};
+
+/** The last part of a URL, without its query, decoded. */
+function uriName(uri) {
+  const name = baseName(String(uri).split(/[?#]/)[0]);
   try {
     return decodeURIComponent(name);
   } catch {
@@ -75,7 +80,7 @@ export function downloadName(raw) {
         return dn;
       }
     }
-    return baseName(uri) || uri;
+    return uriName(uri) || uri;
   }
   return raw.gid;
 }
