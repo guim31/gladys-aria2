@@ -37,6 +37,7 @@ export const HUB_TIMINGS = {
   // Notifications come in bursts (a hundred links added at once): one reading
   // this long after the last one.
   notifyDelayMs: 1_000,
+  notifyMaxDelayMs: 5_000,
   // An unchanged value is published again after this long, so Gladys never
   // shows it as "no recent value" (48 h); well under the 12 h asked.
   heartbeatMs: 6 * 60 * 60_000,
@@ -134,9 +135,13 @@ export class Aria2Hub {
     } else if (server) {
       this.record = this.newRecord(server, config);
     }
-    await this.publishDevices();
-    await this.pollAll();
-    this.schedulePoll();
+    try {
+      await this.publishDevices();
+      await this.pollAll();
+    } finally {
+      // Even when Gladys refused the discovery: the readings go on.
+      this.schedulePoll();
+    }
   }
 
   newRecord(server, config) {
@@ -149,7 +154,7 @@ export class Aria2Hub {
       error: null,
       failures: 0,
       downSince: null,
-      memory: { known: new Map(), pending: null },
+      memory: { known: new Map(), announced: new Set(), pending: null },
       baseline: true,
       polling: null,
       retryTimer: null,
@@ -215,8 +220,21 @@ export class Aria2Hub {
       this.refresh(record);
       return;
     }
+    // Wait for the end of the burst, but no longer than notifyMaxDelayMs
+    // after its first notification (a script adding links one by one).
     clearTimeout(record.notifyTimer);
-    record.notifyTimer = setTimeout(() => this.refresh(record), this.timings.notifyDelayMs);
+    record.notifyFirst ??= this.now();
+    const delay = Math.max(
+      0,
+      Math.min(
+        this.timings.notifyDelayMs,
+        record.notifyFirst + this.timings.notifyMaxDelayMs - this.now(),
+      ),
+    );
+    record.notifyTimer = setTimeout(() => {
+      record.notifyFirst = null;
+      this.refresh(record);
+    }, delay);
     record.notifyTimer.unref?.();
   }
 
@@ -259,6 +277,9 @@ export class Aria2Hub {
     // The SDK forgot the values of this device: everything goes again.
     this.gladys.forgetPublishedStates(device.external_id);
     await this.publishStates(this.record);
+    // The badge was sent before the device existed.
+    this.transport = null;
+    await this.publishTransport();
     this.gladys.requestWidgetRefresh(WIDGET_KEY);
   }
 
@@ -348,6 +369,9 @@ export class Aria2Hub {
       }));
     }
 
+    if (record.dropped) {
+      return false;
+    }
     await this.publishStates(record);
     return widgetChanged || completed.length > 0 || failed.length > 0;
   }
@@ -413,7 +437,9 @@ export class Aria2Hub {
 
   async publishStates(record) {
     const states = deviceStates(this.gladys, {
-      reading: record.reading,
+      // While aria2 does not answer, only "connected" goes: the last speeds
+      // and counters are not republished (nor kept fresh by the heartbeat).
+      reading: record.connected === false ? null : record.reading,
       connected: record.connected,
       language: this.config.language,
     });
@@ -571,17 +597,36 @@ export class Aria2Hub {
   addUri(rawUri, rawDir) {
     const language = this.config?.language;
     const uri = typeof rawUri === 'string' ? rawUri.trim() : '';
-    if (!URI_SCHEMES.test(uri) || uri.length > MAX_URI_LENGTH) {
+    const magnet = uri.startsWith('magnet:');
+    let host = null;
+    if (!magnet && URI_SCHEMES.test(uri)) {
+      try {
+        const url = new URL(uri);
+        // Credentials in the link would end up in the download name.
+        host = url.username || url.password ? null : url.host;
+      } catch {
+        host = null;
+      }
+    }
+    if (!URI_SCHEMES.test(uri) || uri.length > MAX_URI_LENGTH || (!magnet && !host)) {
       throw new Error(pick(ACTION_TEXT.badUri, language));
     }
     const dir = typeof rawDir === 'string' ? rawDir.trim() : '';
     // An absolute folder, not a way out of it: the scene author picks where
-    // aria2 writes, never somewhere relative to its working directory.
-    if (dir && (!dir.startsWith('/') || dir.split('/').includes('..') || dir.length > 1000)) {
+    // aria2 writes, never somewhere relative to its working directory. No
+    // control character: aria2 writes its options one per line in its
+    // session file, a line break would add an option.
+    if (
+      dir &&
+      (!dir.startsWith('/') ||
+        dir.split('/').includes('..') ||
+        dir.length > 1000 ||
+        [...dir].some((c) => c.charCodeAt(0) < 0x20 || c.charCodeAt(0) === 0x7f))
+    ) {
       throw new Error(pick(ACTION_TEXT.badDir, language));
     }
     // The link may carry a token: the log keeps its host only.
-    const shown = uri.startsWith('magnet:') ? 'a magnet link' : `a link to ${new URL(uri).host}`;
+    const shown = magnet ? 'a magnet link' : `a link to ${host}`;
     return this.command(`${shown} added`, (api) => api.addUri(uri, dir || null));
   }
 

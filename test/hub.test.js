@@ -364,3 +364,70 @@ test('the secret never leaves in clear outside the RPC body', async (t) => {
   assert.ok(!JSON.stringify(w.fake.connectionStatuses).includes('hunter2'));
   assert.ok(!w.hub.record.server.wsUrl.includes('hunter2'));
 });
+
+test('a sharing torrent paused then resumed is not completed again, nor a queue to empty', async (t) => {
+  const aria2 = new FakeAria2({ downloads: [] });
+  aria2.add({
+    gid: 'iso',
+    status: 'active',
+    totalLength: '100',
+    completedLength: '100',
+    bittorrent: { info: { name: 'debian-13.iso' } },
+  });
+  const w = await world(t, { aria2, sockets: false });
+  await w.fake.sceneAction('pause_all', {});
+  assert.equal(aria2.get('iso').status, 'paused');
+  assert.equal(state(w, 'downloads_waiting'), 0, 'a paused seed is not waiting');
+  assert.equal(state(w, 'paused'), 0, 'nothing left to download: not "everything paused"');
+  await w.fake.sceneAction('resume_all', {});
+  aria2.set('iso', { status: 'active' });
+  // Checked again after a restart of aria2: under 100 %, then complete.
+  aria2.set('iso', { completedLength: '40' });
+  await w.hub.pollAll();
+  aria2.set('iso', { completedLength: '100' });
+  await w.hub.pollAll();
+  assert.deepEqual(events(w, 'download_completed'), []);
+  assert.equal(events(w, 'queue_empty').length, 1, 'only after the check');
+});
+
+test('links and folders that could hide credentials or options are refused', async (t) => {
+  const w = await world(t);
+  for (const uri of ['https://user:pass@x.example/a', 'http://[x', 'https://x.example:99999/a']) {
+    const ack = await w.fake.sceneAction('add_uri', { uri });
+    assert.equal(ack.success, false, uri);
+    assert.ok(!ack.error.includes('pass'), ack.error);
+  }
+  const ack = await w.fake.sceneAction('add_uri', {
+    uri: 'https://x.example/a',
+    dir: '/dl\n on-download-complete=/tmp/x.sh',
+  });
+  assert.equal(ack.success, false);
+  assert.equal(w.aria2.downloads.length, 4, 'nothing added');
+});
+
+test('while aria2 does not answer, only "connected" is published', async (t) => {
+  const aria2 = new FakeAria2();
+  const w = await world(t, { aria2, sockets: false });
+  aria2.down = true;
+  const before = w.fake.states.length;
+  await w.hub.pollAll();
+  assert.deepEqual(
+    w.fake.states.slice(before).map((s) => s.device_feature_external_id),
+    [ids(w.gladys).feature('connected')],
+  );
+});
+
+test('a refused discovery still leaves the timer running', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const w = await createWorld({ connect: false, timers: true, sockets: false });
+  t.after(() => w.app.stop());
+  t.mock.method(w.gladys, 'publishDiscoveredDevices', async () => {
+    throw new Error('HTTP 500');
+  });
+  await w.gladys.connect();
+  await w.app.ready;
+  const reads = w.aria2.calls.length;
+  t.mock.timers.tick(30_000);
+  await flush();
+  assert.equal(w.aria2.calls.length, reads + 1);
+});

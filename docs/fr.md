@@ -188,7 +188,7 @@ L'API est locale, sans quota.
 - **« certificat refusé »** : cochez _Accepter les certificats auto-signés_.
 - **« pas de notifications instantanées »** dans le rapport du test : le
   WebSocket est refusé, souvent par un proxy inverse sans prise en charge du
-  WebSocket. Tout marche, à l'intervalle de rafraîchissement.
+  WebSocket, ou un certificat auto-signé (que le WebSocket ne peut pas accepter). Tout marche, à l'intervalle de rafraîchissement.
 - **« commande refusée par aria2 »** : aria2 n'a pas accepté le lien (schéma
   inconnu, adresse invalide) ou le dossier. Sa raison est dans les logs de
   l'intégration.

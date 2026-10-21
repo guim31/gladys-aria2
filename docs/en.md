@@ -175,7 +175,7 @@ The API is local, without quota.
   missing behind a reverse proxy.
 - **"certificate refused"**: tick _Accept self-signed certificates_.
 - **"no instant notifications"** in the test report: the WebSocket is refused,
-  often by a reverse proxy without WebSocket support. Everything works, at the
+  often by a reverse proxy without WebSocket support, or a self-signed certificate (the WebSocket cannot accept one). Everything works, at the
   refresh interval.
 - **"command refused by aria2"**: aria2 did not accept the link (unknown
   scheme, invalid address) or the folder. Its reason is in the logs of the

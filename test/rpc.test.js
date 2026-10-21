@@ -91,7 +91,7 @@ test('the recorded sessions: paused, then over', async () => {
   });
   // From the busy reading to the end: two failures (the file server refused
   // the resumed ranges), and nothing left.
-  const memory = { known: new Map(), pending: null };
+  const memory = { known: new Map(), announced: new Set(), pending: null };
   diffDownloads(memory, (await read('busy')).downloads, true);
   const events = diffDownloads(memory, done.downloads, false);
   assert.deepEqual(

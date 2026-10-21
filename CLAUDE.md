@@ -273,7 +273,13 @@ s'est bloqué au téléchargement : partir de l'image `node:24-alpine` déjà pr
   aussi juste après `pauseAll` : ne pas s'en servir pour dire « actif ».
 - Un lien mort a `files[0].path` vide : le nom vient de l'URI. Un lien magnet commence par un
   téléchargement `[METADATA]…` suivi (`followedBy`) du vrai : ne pas compter le premier.
-- Un torrent complet reste `active` tant qu'il partage : compté « terminé », pas « actif ».
+- Un torrent complet reste `active` tant qu'il partage, et passe `paused` après `pauseAll` :
+  compté « terminé » dans les deux cas, jamais « en attente ». Un GID n'est annoncé terminé
+  qu'une fois (revérification après redémarrage avec `--save-session`).
+- `tellStopped(0, n)` rend les résultats **les plus anciens** : lire avec l'offset `-1` (les plus
+  récents d'abord), sinon au-delà de 1000 résultats les nouveaux ne se voient plus.
+- `dir` d'`addUri` : refuser les caractères de contrôle (aria2 écrit ses options une par ligne
+  dans le fichier de session : un saut de ligne ajouterait une option).
 - `pauseAll` ne met en pause que l'existant : un lien ajouté ensuite démarre.
 - `max-overall-download-limit` se lit et s'écrit en octets/s (chaîne) ; les suffixes `K`/`M`
   d'aria2 valent 1024, d'où l'envoi en octets.

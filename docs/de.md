@@ -184,7 +184,7 @@ Die API ist lokal, ohne Kontingent.
 - **„Zertifikat abgelehnt“**: Aktiviere _Selbstsignierte Zertifikate
   akzeptieren_.
 - **„keine Sofortbenachrichtigungen“** im Testbericht: Der WebSocket wird
-  abgelehnt, oft von einem Reverse Proxy ohne WebSocket-Unterstützung. Alles
+  abgelehnt, oft von einem Reverse Proxy ohne WebSocket-Unterstützung, oder ein selbstsigniertes Zertifikat (das der WebSocket nicht akzeptieren kann). Alles
   funktioniert, im Aktualisierungsintervall.
 - **„Befehl von aria2 abgelehnt“**: aria2 hat den Link (unbekanntes Schema,
   ungültige Adresse) oder den Ordner nicht angenommen. Der Grund steht in den

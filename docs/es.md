@@ -180,7 +180,7 @@ La API es local, sin cuota.
   o falta una ruta detrás de un proxy inverso.
 - **«certificado rechazado»**: marque _Aceptar certificados autofirmados_.
 - **«sin notificaciones instantáneas»** en el informe de la prueba: el
-  WebSocket se rechaza, a menudo por un proxy inverso sin soporte de WebSocket.
+  WebSocket se rechaza, a menudo por un proxy inverso sin soporte de WebSocket, o un certificado autofirmado (que el WebSocket no puede aceptar).
   Todo funciona, al intervalo de actualización.
 - **«orden rechazada por aria2»**: aria2 no ha aceptado el enlace (esquema
   desconocido, dirección no válida) o la carpeta. Su motivo está en los

@@ -139,12 +139,15 @@ export class FakeAria2 {
             .slice(rest[0], rest[0] + rest[1])
             .map((d) => pickKeys(d, rest[2])),
         };
-      case 'aria2.tellStopped':
+      case 'aria2.tellStopped': {
+        // A negative offset counts from the end, newest first (like aria2).
+        const stopped = this.list('complete', 'error', 'removed');
+        const list = rest[0] < 0 ? stopped.reverse() : stopped;
+        const from = rest[0] < 0 ? -rest[0] - 1 : rest[0];
         return {
-          result: this.list('complete', 'error', 'removed')
-            .slice(rest[0], rest[0] + rest[1])
-            .map((d) => pickKeys(d, rest[2])),
+          result: list.slice(from, from + rest[1]).map((d) => pickKeys(d, rest[2])),
         };
+      }
       case 'aria2.pauseAll':
         for (const d of this.list('active', 'waiting')) {
           Object.assign(d, { status: 'paused', downloadSpeed: '0' });

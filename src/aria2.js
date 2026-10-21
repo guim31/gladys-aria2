@@ -33,7 +33,9 @@ const KEYS = [
 ];
 
 // tellWaiting and tellStopped page through the lists: one page is enough
-// for a home server (aria2 keeps 1000 results by default).
+// for a home server (aria2 keeps 1000 results by default). tellStopped reads
+// from the end (offset -1): the newest results first, whatever
+// --max-download-result is.
 export const MAX_LISTED = 1000;
 
 const LIMIT_OPTION = 'max-overall-download-limit';
@@ -101,8 +103,13 @@ export function parseDownload(raw) {
     errorCode: raw.errorCode === undefined ? null : Number(raw.errorCode),
     errorMessage: typeof raw.errorMessage === 'string' ? raw.errorMessage : '',
     // A complete torrent keeps sharing: aria2 lists it as active until
-    // --seed-time or --seed-ratio is reached.
-    seeding: isTorrent && raw.status === 'active' && total > 0 && completed >= total,
+    // --seed-time or --seed-ratio is reached, and as paused or waiting after
+    // a pauseAll. It stays a completed download, not one to do.
+    seeding:
+      isTorrent &&
+      ['active', 'waiting', 'paused'].includes(raw.status) &&
+      total > 0 &&
+      completed >= total,
     // A magnet link first downloads its metadata, a .torrent or .metalink URL
     // its file: the real download follows (followedBy), under another gid.
     metadata: Array.isArray(raw.followedBy) && raw.followedBy.length > 0,
@@ -125,7 +132,7 @@ export class Aria2Client {
       ['aria2.getGlobalOption'],
       ['aria2.tellActive', KEYS],
       ['aria2.tellWaiting', 0, MAX_LISTED, KEYS],
-      ['aria2.tellStopped', 0, MAX_LISTED, KEYS],
+      ['aria2.tellStopped', -1, MAX_LISTED, KEYS],
     ]);
     if (![active, waiting, stopped].every(Array.isArray)) {
       throw new Aria2Error(ERROR_KINDS.HTTP, 'tell*: unexpected answer');

@@ -22,7 +22,7 @@ export const fit = (text, max) =>
   text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
 
 export const isActive = (d) => d.status === 'active' && !d.seeding;
-export const isWaiting = (d) => d.status === 'waiting' || d.status === 'paused';
+export const isWaiting = (d) => (d.status === 'waiting' || d.status === 'paused') && !d.seeding;
 export const isCompleted = (d) => (d.status === 'complete' && !d.metadata) || d.seeding;
 export const isError = (d) => d.status === 'error';
 
@@ -150,7 +150,10 @@ const stateOf = (d) =>
  *   - queueEmpty: there was something to download, there is nothing left.
  * Nothing at the first reading of a server (baseline): only remember.
  *
- * @param {object} memory { known: Map<gid, state>, pending: number|null } (updated in place)
+ * A gid is announced complete once: a torrent checked again after a restart
+ * of aria2 (--save-session) goes through "pending" before sharing again.
+ *
+ * @param {object} memory { known: Map<gid, state>, announced: Set<gid>, pending: number|null } (updated in place)
  * @param {Array} downloads the new reading
  * @param {boolean} baseline
  * @returns {{ completed: Array, failed: Array, queueEmpty: boolean }}
@@ -164,17 +167,22 @@ export function diffDownloads(memory, downloads, baseline) {
     const state = stateOf(d);
     const before = memory.known.get(d.gid);
     if (!baseline && before !== state) {
-      if (state === 'complete') {
+      if (state === 'complete' && !memory.announced.has(d.gid)) {
+        memory.announced.add(d.gid);
         completed.push(d);
       } else if (state === 'error') {
         failed.push(d);
       }
+    }
+    if (baseline && state === 'complete') {
+      memory.announced.add(d.gid);
     }
     memory.known.set(d.gid, state);
   }
   for (const gid of memory.known.keys()) {
     if (!seen.has(gid)) {
       memory.known.delete(gid);
+      memory.announced.delete(gid);
     }
   }
   const pending = pendingCount(countDownloads(downloads));
