@@ -10,6 +10,8 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-21
+
 ### Added
 
 - One aria2 device: download and upload speeds, active, waiting, completed
@@ -27,3 +29,6 @@ the notes of the version's GitHub Release.
   counters, Pause all, Resume all and Slow down buttons.
 - **Test the connection**, and documentation in English, French, German and
   Spanish.
+
+[Unreleased]: https://github.com/guim31/gladys-aria2/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/guim31/gladys-aria2/releases/tag/v1.0.0
