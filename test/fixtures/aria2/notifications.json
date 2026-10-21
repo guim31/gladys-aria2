@@ -1,0 +1,110 @@
+[
+  {
+    "jsonrpc": "2.0",
+    "method": "aria2.onDownloadStart",
+    "params": [
+      {
+        "gid": "2bdf5c53ce303f7e"
+      }
+    ]
+  },
+  {
+    "jsonrpc": "2.0",
+    "method": "aria2.onDownloadStart",
+    "params": [
+      {
+        "gid": "17723d4955052c56"
+      }
+    ]
+  },
+  {
+    "jsonrpc": "2.0",
+    "method": "aria2.onDownloadComplete",
+    "params": [
+      {
+        "gid": "2bdf5c53ce303f7e"
+      }
+    ]
+  },
+  {
+    "jsonrpc": "2.0",
+    "method": "aria2.onDownloadStart",
+    "params": [
+      {
+        "gid": "14a4f7a08289886e"
+      }
+    ]
+  },
+  {
+    "jsonrpc": "2.0",
+    "method": "aria2.onDownloadError",
+    "params": [
+      {
+        "gid": "14a4f7a08289886e"
+      }
+    ]
+  },
+  {
+    "jsonrpc": "2.0",
+    "method": "aria2.onDownloadStart",
+    "params": [
+      {
+        "gid": "315c4bc6d6a5ade9"
+      }
+    ]
+  },
+  {
+    "jsonrpc": "2.0",
+    "method": "aria2.onDownloadPause",
+    "params": [
+      {
+        "gid": "17723d4955052c56"
+      }
+    ]
+  },
+  {
+    "jsonrpc": "2.0",
+    "method": "aria2.onDownloadPause",
+    "params": [
+      {
+        "gid": "315c4bc6d6a5ade9"
+      }
+    ]
+  },
+  {
+    "jsonrpc": "2.0",
+    "method": "aria2.onDownloadStart",
+    "params": [
+      {
+        "gid": "315c4bc6d6a5ade9"
+      }
+    ]
+  },
+  {
+    "jsonrpc": "2.0",
+    "method": "aria2.onDownloadStart",
+    "params": [
+      {
+        "gid": "17723d4955052c56"
+      }
+    ]
+  },
+  {
+    "jsonrpc": "2.0",
+    "method": "aria2.onDownloadError",
+    "params": [
+      {
+        "gid": "315c4bc6d6a5ade9"
+      }
+    ]
+  },
+  {
+    "jsonrpc": "2.0",
+    "method": "aria2.onDownloadError",
+    "params": [
+      {
+        "gid": "17723d4955052c56"
+      }
+    ]
+  }
+]

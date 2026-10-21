@@ -1,67 +1,212 @@
-# Template de démonstration
+# aria2
 
-Ceci est la documentation utilisateur de l'intégration. Gladys ré-héberge ce
-fichier et affiche un lien **Documentation** permanent vers lui dans l'écran
-de configuration (dans la langue de l'utilisateur, avec l'anglais en repli) —
-c'est au moment de configurer que l'utilisateur en a le plus besoin. Gardez
-les courtes indications d'accueil dans les blocs `section` du `config_schema`
-du manifest ; mettez ici le pas-à-pas détaillé (captures d'écran, dépannage…).
+Suivez et pilotez **aria2**, l'utilitaire de téléchargement léger (HTTP, FTP,
+SFTP, BitTorrent, Metalink), depuis Gladys, sur votre réseau local. Voyez les
+débits descendant et montant et les téléchargements en cours, mettez tout en
+pause ou ralentissez quand un film commence à la télé, ajoutez un lien depuis
+une scène, et soyez prévenu quand un téléchargement se termine ou échoue.
 
-## Ce que vous obtenez
+> **Testée sur un vrai aria2, pas encore dans une vraie maison : vos retours
+> sont les bienvenus.** Cette intégration a été testée face à aria2 1.37.0, avec
+> de vrais téléchargements (terminés, en erreur, en pause), mais pas encore
+> dans une vraie installation Gladys avec votre NAS, votre proxy inverse ou
+> votre interface (AriaNg, Motrix…). Si quelque chose ne marche pas comme
+> décrit, dites-le sur le [forum Gladys](https://community.gladysassistant.com)
+> ou dans les [issues](https://github.com/guim31/gladys-aria2/issues).
 
-Six appareils de démonstration apparaissent après l'installation : une
-station météo (vraies données Open-Meteo), un interrupteur, une lampe
-variable, une prise connectée avec mesure de puissance, un détecteur de
-mouvement et une caméra.
+L'intégration ne retire jamais ni téléchargement ni fichier. Ses commandes sont
+la pause, la reprise, la limite de débit descendant et l'ajout d'un lien.
+
+## Ce qu'il vous faut
+
+- Gladys Assistant 5.1.0 ou plus récent.
+- aria2 1.18 ou plus récent lancé avec son interface RPC, joignable depuis
+  Gladys : `aria2c --enable-rpc --rpc-listen-all --rpc-secret=<un secret>`, ou
+  les mêmes options dans `aria2.conf` (`enable-rpc=true`,
+  `rpc-listen-all=true`, `rpc-secret=…`). Les images Docker
+  (`p3terx/aria2-pro`…) et les paquets de NAS le font avec une variable
+  `RPC_SECRET` ou un réglage.
+- Le **secret RPC** (`--rpc-secret`), celui que vous saisissez dans AriaNg
+  comme _jeton secret_. aria2 marche aussi sans, mais n'importe qui sur votre
+  réseau pourrait alors le piloter.
+
+`--rpc-listen-all` compte : sans lui, aria2 ne répond que sur `localhost`, et
+Gladys tourne dans un autre conteneur.
 
 ## Configuration
 
-1. Ouvrez l'onglet **Configuration** de l'intégration.
-2. Renseignez la **latitude** et la **longitude** que la station météo de
-   démonstration doit observer (Paris par défaut), et choisissez votre unité
-   de température. L'**intervalle de rafraîchissement** règle la fréquence
-   de lecture de la station météo et de la puissance de la prise : toutes
-   les 5 minutes par défaut, toutes les minutes au plus.
-3. Enregistrez : les appareils apparaissent dans l'onglet **Découverte**,
-   prêts à être ajoutés.
+1. Installez l'intégration depuis le catalogue de Gladys.
+2. Dans **Configuration**, saisissez l'**Adresse RPC** d'aria2 (par exemple
+   `192.168.1.10:6800` ; port 6800 si aucun n'est saisi) et le **Secret RPC**,
+   et éventuellement un **Nom**. L'URL complète convient aussi, telle qu'AriaNg
+   l'affiche : `ws://192.168.1.10:6800/jsonrpc`, ou
+   `https://nas.example.com/aria2/jsonrpc` derrière un proxy inverse.
+3. Enregistrez, puis cliquez sur **Tester la connexion** : le message sous le
+   bouton dit si aria2 répond, sa version, ses téléchargements, et si les
+   notifications instantanées marchent.
+4. Ouvrez l'onglet **Découverte** : un appareil, aria2. Cliquez sur
+   **Ajouter**, choisissez une pièce, enregistrez.
 
-Le réglage **Préférer la connexion locale** pilote la prise de
-démonstration : elle affiche en badge le canal réellement utilisé (local ou
-cloud), avec un point orange quand elle fonctionne en mode dégradé (local
-refusé, bascule cloud).
+Options :
 
-## Actions
+- **Limite de « Ralentir » (ko/s)** : le débit de l'ensemble des
+  téléchargements tant que _Ralentir_ est actif (1000 ko/s par défaut, soit
+  8 Mbit/s).
+- **Intervalle de rafraîchissement** : fréquence de lecture d'aria2, de 10
+  secondes à 2 minutes (30 secondes par défaut). Les déclencheurs de scène ne
+  l'attendent pas : aria2 prévient l'intégration tout de suite.
+- **Accepter les certificats auto-signés** : pour un aria2 servi en HTTPS
+  (`--rpc-secure`) avec son propre certificat.
+- **Langue des textes des appareils** : anglais, français, allemand ou
+  espagnol, pour les noms des fonctionnalités (donnés à l'ajout de l'appareil)
+  et la liste des téléchargements (français par défaut).
 
-- **Tester le fournisseur météo** — effectue une requête en direct vers
-  Open-Meteo et affiche la température et l'humidité actuelles sous le
-  bouton.
-- **Identifier un appareil** — choisissez un de vos appareils dans la liste
-  et il se signale (la lampe de démonstration « clignote » dans les logs).
+## L'appareil aria2
 
-## Scènes
+| Fonctionnalité             | Ce que c'est                                                                   |
+| -------------------------- | ------------------------------------------------------------------------------ |
+| Débit descendant           | Débit de l'ensemble des téléchargements, en ko/s                               |
+| Débit montant              | Débit de l'ensemble des envois (torrents en partage), en ko/s                  |
+| Téléchargements actifs     | Téléchargements qui reçoivent des données                                      |
+| Téléchargements en attente | Téléchargements dans la file, en attente d'une place ou en pause               |
+| Téléchargements terminés   | Téléchargements finis depuis le démarrage d'aria2 (torrent en partage compris) |
+| Téléchargements en erreur  | Téléchargements arrêtés par une erreur depuis le démarrage d'aria2             |
+| Téléchargements en cours   | Texte : les trois premiers téléchargements actifs avec leur pourcentage        |
+| Tout en pause              | Interrupteur : allumé, met tout en pause ; éteint, reprend tout                |
+| Ralentir                   | Interrupteur : allumé, pose la limite de la configuration ; éteint, la retire  |
+| Limite de débit descendant | La limite globale de téléchargement d'aria2, en ko/s (0 : aucune)              |
+| aria2 connecté             | 1 tant qu'aria2 répond, 0 sinon                                                |
 
-L'intégration ajoute ses propres cartes à l'éditeur de scènes (Gladys 5.1
-ou plus récent), dans la catégorie **Intégrations** :
+_Téléchargements terminés_ et _Téléchargements en erreur_ comptent ce dont
+aria2 se souvient : les résultats de la session (1000 au plus,
+`--max-download-result`), jusqu'au redémarrage d'aria2 ou à leur purge depuis
+AriaNg. Les métadonnées d'un lien magnet et le fichier `.torrent` d'un
+téléchargement ne comptent pas : seulement le vrai téléchargement.
 
-- **Mouvement détecté** (déclencheur) — lance la scène quand un détecteur
-  de démonstration voit bouger quelque chose. Choisissez éventuellement le
-  détecteur et ce qui a bougé (personne, animal) ; laissés vides, toute
-  détection correspond. Les actions suivantes peuvent lire ce qui a bougé
-  avec `{{triggerEvent.data.target}}`.
-- **Identifier un appareil** (action) — fait se signaler l'appareil choisi.
-  Elle indique si l'appareil a pu se signaler, pour que les actions
-  suivantes puissent en dépendre.
+_Tout en pause_ est allumé quand il reste quelque chose à télécharger et que
+tout est en pause. Un lien ajouté pendant que tout est en pause démarre tout de
+suite : aria2 met en pause ce qui existe, pas ce qui arrive ensuite.
+
+_Ralentir_ est allumé dès qu'une limite globale de téléchargement est posée,
+par qui que ce soit (l'interrupteur, le widget, l'action _Régler la limite de
+débit descendant_, AriaNg).
 
 ## Tableau de bord
 
-Ajoutez le widget **État de la démo** à un tableau de bord : il affiche en
-direct la température de la station météo et la puissance de la prise du
-bureau, la connexion utilisée par la prise (en orange si dégradée) et la
-position observée. Son bouton **Identifier la lampe** fait se signaler la
-lampe de démonstration.
+Le widget **Téléchargements aria2** montre les débits descendant et montant,
+le nombre de téléchargements actifs, les téléchargements en cours avec leur
+pourcentage et leur débit, et les nombres en attente, terminés et en erreur.
+Trois boutons :
+
+- **Tout en pause** : met en pause tous les téléchargements ;
+- **Tout reprendre** : reprend tous les téléchargements ;
+- **Ralentir** : pose la limite de la configuration, ou retire la limite quand
+  il y en a une (une coche le montre).
+
+Le widget marche dès que l'intégration est configurée, avant même l'ajout de
+l'appareil.
+
+## Scènes
+
+### Déclencheurs
+
+- **Téléchargement terminé** : un téléchargement s'est terminé. Un torrent
+  compte dès qu'il est complet, pendant qu'il continue de partager, une seule
+  fois. Variables : le nom du fichier, la taille en Go et le dossier.
+- **Téléchargement en erreur** : aria2 a arrêté un téléchargement sur une
+  erreur (lien mort, refus du serveur, disque plein…). Variables : le nom du
+  fichier, le message d'erreur d'aria2 et son
+  [code d'erreur](https://aria2.github.io/manual/en/html/aria2c.html#exit-status)
+  (3 : ressource introuvable, 9 : pas assez d'espace disque…).
+- **Plus rien à télécharger** : le dernier téléchargement actif ou en attente
+  s'est arrêté (terminé, en erreur ou retiré). Les téléchargements en pause
+  restent à faire : tout mettre en pause ne le déclenche pas. Variables : les
+  nombres de terminés et d'erreurs de la session.
+
+Les téléchargements présents au démarrage de l'intégration ne sont pas
+annoncés. aria2 prévient l'intégration par son WebSocket (même port que le
+RPC) : les déclencheurs partent en moins d'une seconde. Sans WebSocket (un
+proxy inverse qui ne le laisse pas passer), ils partent à la lecture suivante.
+
+### Actions
+
+- **Ajouter un lien à télécharger** : donne un lien à aria2 : `http`, `https`,
+  `ftp`, `sftp`, un lien `magnet:`, ou l'adresse d'un fichier `.torrent` ou
+  `.metalink` (aria2 télécharge alors ce qu'il décrit). Le **Dossier** est
+  facultatif : un chemin absolu sur le serveur aria2 (`/downloads/films`) ;
+  vide, le dossier par défaut d'aria2. La sortie est l'identifiant (GID) du
+  nouveau téléchargement.
+- **Mettre tous les téléchargements en pause** : met en pause les
+  téléchargements actifs et en attente.
+- **Reprendre tous les téléchargements** : reprend les téléchargements en
+  pause.
+- **Régler la limite de débit descendant** : la limite globale d'aria2 pour
+  l'ensemble des téléchargements, en ko/s, jusqu'au prochain changement ; 0 la
+  retire.
+
+### Idées de scènes
+
+- **Un film commence** : quand la télé ou le lecteur multimédia se met à lire,
+  allumez _Ralentir_ (action « contrôler un appareil » sur l'interrupteur) ;
+  quand il s'arrête, éteignez-le.
+- **Visio** : depuis un événement d'agenda ou un bouton, _Mettre tous les
+  téléchargements en pause_, puis _Reprendre tous les téléchargements_ une
+  heure plus tard.
+- **Téléchargements de nuit** : à 1 h, _Régler la limite de débit descendant_
+  à 0 ; à 8 h, à 2000.
+- **Film prêt** : sur _Téléchargement terminé_, envoyez un message
+  « {{triggerEvent.data.name}} est prêt ({{triggerEvent.data.size_gb}} Go) ».
+- **Lien mort** : sur _Téléchargement en erreur_, envoyez
+  « {{triggerEvent.data.name}} : {{triggerEvent.data.error}} ».
+- **Plus rien** : sur _Plus rien à télécharger_, coupez le ventilateur du NAS
+  ou laissez l'ordinateur se mettre en veille.
+
+## Rafraîchissement et charge
+
+L'intégration lit aria2 avec son propre minuteur (toutes les 30 secondes par
+défaut), pas par le planificateur de Gladys, et juste après chaque notification
+d'aria2 (une fois par rafale). Une lecture est une seule requête
+(`system.multicall`) avec les seuls champs utilisés, pour 1000 téléchargements
+en attente et 1000 terminés au plus. Quand aria2 ne répond plus, il est relu 15
+secondes plus tard. Une valeur qui ne change pas est quand même renvoyée à
+Gladys toutes les 6 heures. Le WebSocket se reconnecte tout seul, après 5
+secondes puis jusqu'à 5 minutes.
+
+L'API est locale, sans quota.
 
 ## Dépannage
 
-L'intégration journalise tout ce qu'elle fait : consultez les logs de
-l'intégration depuis l'interface Gladys (ou `docker logs` sur l'hôte) avec
-`LOG_LEVEL=debug` pour le détail complet.
+- **« aria2 ne répond pas »** : vérifiez l'adresse et le port depuis la machine
+  de Gladys (`curl http://192.168.1.10:6800/jsonrpc` doit obtenir une réponse),
+  qu'aria2 tourne avec `--enable-rpc` et `--rpc-listen-all`, et que le port est
+  publié si aria2 tourne dans Docker.
+- **« secret refusé »** : le secret RPC diffère de `--rpc-secret`. Sans secret
+  côté aria2, laissez le champ vide.
+- **« pas de RPC aria2 à cette adresse »** : quelque chose répond, mais pas
+  aria2 : souvent la page web d'AriaNg (port 6880) au lieu du RPC (port 6800),
+  ou un chemin manquant derrière un proxy inverse.
+- **« certificat refusé »** : cochez _Accepter les certificats auto-signés_.
+- **« pas de notifications instantanées »** dans le rapport du test : le
+  WebSocket est refusé, souvent par un proxy inverse sans prise en charge du
+  WebSocket, ou un certificat auto-signé (que le WebSocket ne peut pas accepter). Tout marche, à l'intervalle de rafraîchissement.
+- **« commande refusée par aria2 »** : aria2 n'a pas accepté le lien (schéma
+  inconnu, adresse invalide) ou le dossier. Sa raison est dans les logs de
+  l'intégration.
+- **Plus de détails** : mettez la variable d'environnement `LOG_LEVEL=debug`
+  sur le conteneur pour voir chaque lecture et chaque notification dans les
+  logs. Le secret et les liens ne sont jamais écrits (seulement l'hôte d'un
+  lien).
+
+## Limites
+
+- Un seul serveur aria2. Un appareil, pas un par téléchargement.
+- Aucun retrait de téléchargement ni de fichier, par choix.
+- Les débits et la limite sont ceux de l'ensemble d'aria2, pas d'un
+  téléchargement.
+- Les nombres de terminés et d'erreurs sont ceux de la session d'aria2 : ils
+  repartent de zéro quand aria2 redémarre.
+- Un téléchargement ajouté puis retiré entre deux lectures, WebSocket coupé,
+  n'est pas vu.
+- Les noms des fonctionnalités sont fixés à l'ajout de l'appareil : changer la
+  langue ensuite ne renomme rien dans Gladys.
+- Sans lien avec le projet aria2.

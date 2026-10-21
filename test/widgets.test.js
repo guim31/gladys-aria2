@@ -1,77 +1,120 @@
+// -----------------------------------------------------------------------------
+// The `downloads` widget: content within the core budget and vocabulary, in
+// every state, and its three buttons.
+// -----------------------------------------------------------------------------
+
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { validateWidgetContent } from '@gladysassistant/integration-sdk';
-import { createFakeGladys } from '@gladysassistant/integration-sdk/testing';
-import { buildDiscoveredDevices } from '../src/devices/index.js';
-import { simulateLanSession } from '../src/devices/plug.js';
-import { DEMO_STATUS_WIDGET, WIDGETS, refreshWidgets } from '../src/widgets.js';
-import { normalizeConfig } from '../src/config.js';
+import { CONFIG, FakeAria2, createWorld } from './helpers/world.js';
 
-const gladys = createFakeGladys();
-const config = normalizeConfig();
-const demoStatus = WIDGETS[DEMO_STATUS_WIDGET];
+const LANGS = ['en', 'fr', 'de', 'es'];
 
-// What the SDK passes to onWidgetGet, plus the config index.js adds.
-const getContent = (cfg = config) =>
-  demoStatus.get(gladys, { settings: {}, language: 'en', units: 'metric', config: cfg });
+async function world(t, options) {
+  const w = await createWorld(options);
+  t.after(() => w.app.stop());
+  return w;
+}
 
-test('the demo_status content is rendered exactly as sent', async () => {
-  // [] = nothing the core would drop, truncate or trim to the content budget.
-  assert.deepEqual(validateWidgetContent(await getContent()), []);
-});
+async function content(w, language = 'en') {
+  const ack = await w.fake.widgetGet('downloads', { settings: {}, language });
+  assert.equal(ack.success, true, ack.error);
+  return ack.data.content;
+}
 
-test('the degraded plug connection content is valid too', async () => {
-  simulateLanSession(false);
-  try {
-    const content = await getContent();
-    assert.deepEqual(validateWidgetContent(content), []);
-    const status = content.components.find((component) => component.type === 'status');
-    assert.ok(
-      status.items.some((item) => item.color === 'warning'),
-      'degraded shows a warning',
-    );
-  } finally {
-    simulateLanSession(true);
-  }
-});
-
-test('the live tiles reference features the integration publishes', async () => {
-  const featureIds = new Set(
-    buildDiscoveredDevices(gladys, config).flatMap((device) =>
-      device.features.map((feature) => feature.external_id),
-    ),
-  );
-  const liveTiles = (await getContent()).components.filter((c) => c.device_feature);
-  assert.ok(liveTiles.length > 0, 'the template demonstrates a device-bound tile');
-  for (const tile of liveTiles) {
-    assert.ok(featureIds.has(tile.device_feature), `unknown feature ${tile.device_feature}`);
-  }
-});
-
-test('every button action of the content is handled and answers a short toast', async () => {
-  const buttons = (await getContent()).components.filter((c) => c.type === 'button' && c.action);
-  assert.ok(buttons.length > 0, 'the template demonstrates a widget action');
-  for (const { action } of buttons) {
-    const message = await demoStatus.action(gladys, {
-      actionKey: action.key,
-      params: action.params ?? {},
-      settings: {},
-      config,
+test('the widget fits the budget in every state and language', async (t) => {
+  const many = new FakeAria2();
+  for (let i = 0; i < 12; i += 1) {
+    many.add({
+      status: 'active',
+      totalLength: '1000',
+      completedLength: String(i * 50),
+      downloadSpeed: String(i * 1000),
+      files: [{ path: `/downloads/a-very-long-file-name-for-the-tablet-${i}.mkv`, uris: [] }],
     });
-    assert.ok(message.en, 'the toast carries at least the mandatory `en` text');
-    assert.ok(message.en.length <= 200, 'toasts are capped at 200 characters');
   }
+  const down = new FakeAria2();
+  down.down = true;
+  const worlds = [
+    await world(t),
+    await world(t, { aria2: many }),
+    await world(t, { aria2: new FakeAria2({ downloads: [] }) }),
+    await world(t, { aria2: down }),
+    await world(t, { config: { language: 'en' } }),
+  ];
+  for (const w of worlds) {
+    for (const language of LANGS) {
+      assert.deepEqual(validateWidgetContent(await content(w, language)), [], language);
+    }
+  }
+  const busy = await content(worlds[1]);
+  const status = busy.components.find((c) => c.type === 'status');
+  assert.equal(status.items.length, 8, '5 downloads and the 3 counters');
+  assert.match(status.items[0].label, /…$/);
 });
 
-test('an unknown widget action fails, so the user sees the error', async () => {
-  await assert.rejects(
-    demoStatus.action(gladys, { actionKey: 'unknown', params: {}, settings: {}, config }),
-    /Unknown widget action/,
+test('tiles, downloads and buttons of a busy aria2', async (t) => {
+  const w = await world(t, { config: { ...CONFIG, language: 'fr' } });
+  const { components } = await content(w, 'fr');
+  assert.deepEqual(
+    components.filter((c) => c.type === 'value').map((c) => [c.label, c.value, c.unit]),
+    [
+      ['Réception', 1.4, 'Mo/s'],
+      ['Envoi', 0, 'ko/s'],
+      ['Actifs', 2, undefined],
+    ],
+  );
+  const rows = components.find((c) => c.type === 'status').items;
+  assert.deepEqual(
+    rows.map((r) => [r.label, r.value]),
+    [
+      ['small.1.bin', '8 % · 80 ko/s'],
+      ['big.iso', '0 % · 1,3 Mo/s'],
+      ['Téléchargements en attente', 0],
+      ['Téléchargements terminés', 1],
+      ['Téléchargements en erreur', 1],
+    ],
+  );
+  assert.deepEqual(
+    components.filter((c) => c.type === 'button').map((c) => [c.label, c.icon, c.action]),
+    [
+      ['Tout en pause', 'pause', { key: 'pause_all' }],
+      ['Tout reprendre', 'play', { key: 'resume_all' }],
+      ['Ralentir', 'chevrons-down', { key: 'slow_down', params: { enabled: true } }],
+    ],
   );
 });
 
-test('refreshWidgets nudges every widget', () => {
-  const fresh = createFakeGladys();
-  refreshWidgets(fresh);
-  assert.deepEqual(fresh.fake.widgetRefreshes, Object.keys(WIDGETS));
+test('the buttons pause, resume and slow down; the check mark shows the limit', async (t) => {
+  const w = await world(t, { config: { ...CONFIG, slow_limit: 300 } });
+  let ack = await w.fake.widgetAction('downloads', 'pause_all', {}, { settings: {} });
+  assert.equal(ack.data.message.en, 'Every download is paused.');
+  assert.ok(w.aria2.calls.includes('aria2.pauseAll'));
+  ack = await w.fake.widgetAction('downloads', 'resume_all', {}, { settings: {} });
+  assert.equal(ack.data.message.fr, 'Tous les téléchargements reprennent.');
+  ack = await w.fake.widgetAction('downloads', 'slow_down', { enabled: true }, { settings: {} });
+  assert.equal(ack.data.message.de, 'Downloads auf 300 kB/s begrenzt.');
+  assert.equal(w.aria2.limit, '300000');
+  const slow = (await content(w)).components.find((c) => c.action?.key === 'slow_down');
+  assert.equal(slow.icon, 'check-circle');
+  assert.deepEqual(slow.action.params, { enabled: false });
+  ack = await w.fake.widgetAction('downloads', 'slow_down', { enabled: false }, { settings: {} });
+  assert.equal(ack.data.message.es, 'Límite de descarga eliminado.');
+  assert.equal(w.aria2.limit, '0');
+  ack = await w.fake.widgetAction('downloads', 'other', {}, { settings: {} });
+  assert.equal(ack.success, false);
+});
+
+test('without an address, or when aria2 does not answer, the widget says so', async (t) => {
+  const empty = await world(t, { config: { language: 'en' } });
+  assert.match((await content(empty)).components[0].text, /RPC address of aria2/);
+  const aria2 = new FakeAria2();
+  aria2.down = true;
+  const down = await world(t, { aria2 });
+  const { components } = await content(down);
+  assert.match(components[0].text, /aria2 does not answer/);
+  assert.deepEqual(
+    components.find((c) => c.type === 'status').items.map((r) => r.value),
+    ['Unreachable'],
+  );
 });

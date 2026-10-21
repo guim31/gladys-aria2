@@ -1,0 +1,53 @@
+{
+  "unauthorized": {
+    "status": 400,
+    "body": {
+      "id": "x",
+      "jsonrpc": "2.0",
+      "error": {
+        "code": 1,
+        "message": "Unauthorized"
+      }
+    }
+  },
+  "multicallWrongToken": {
+    "status": 200,
+    "body": {
+      "id": "z",
+      "jsonrpc": "2.0",
+      "result": [
+        {
+          "code": 1,
+          "message": "Unauthorized"
+        }
+      ]
+    }
+  },
+  "badUri": {
+    "status": 400,
+    "body": {
+      "id": "7",
+      "jsonrpc": "2.0",
+      "error": {
+        "code": 1,
+        "message": "No URI to download."
+      }
+    }
+  },
+  "ok": {
+    "status": 200,
+    "body": {
+      "id": "2",
+      "jsonrpc": "2.0",
+      "result": "OK"
+    }
+  },
+  "addUri": {
+    "status": 200,
+    "body": {
+      "id": "3",
+      "jsonrpc": "2.0",
+      "result": "2bdf5c53ce303f7e"
+    }
+  }
+}

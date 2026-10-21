@@ -16,8 +16,9 @@ its only runtime dependency. It started from the official JavaScript template.
 ```bash
 npm install
 npm test                                  # node --test, the built-in runner
-node --test test/devices.test.js          # one file
-node --test --test-name-pattern "plug"    # tests whose name matches
+node --test test/hub.test.js              # one file
+node --test --test-name-pattern "slow"    # tests whose name matches
+npm run test:real                         # a real aria2 (ARIA2_URL, ARIA2_SECRET), skipped without
 npm run lint                              # ESLint
 npm run format:check                      # Prettier, as the CI runs it
 npm run format                            # Prettier, fix in place
@@ -31,16 +32,23 @@ pushing.
 ## Architecture
 
 ```
-index.js                          SDK wiring only: handlers registered before connect()
-src/devices/index.js              registry of the device blueprints + dispatch helpers
-src/devices/<type>.js             one device type per file (buildDevice, onPoll, onSetValue...)
+index.js                          SDK wiring only (src/app.js), graceful shutdown
+src/app.js                        registers every handler on the SDK (or its fake Gladys)
+src/hub.js                        the server record: own timer, notifications, states, scene events, commands
+src/devices.js                    the aria2 device: features, names (4 languages), states
+src/model.js                      what a reading means: counters, downloads text, scene events
+src/aria2.js                      the reading (one system.multicall) and the commands
+src/rpc.js, http.js               JSON-RPC over HTTP(S), error kinds; node:http(s)
+src/notifications.js              the aria2 WebSocket: notifications, reconnection
 src/scenes.js                     scene action handlers (manifest `scene_actions`)
-src/widgets.js                    dashboard widget handlers (manifest `widgets`)
+src/widgets.js                    the `downloads` dashboard widget (manifest `widgets`)
+src/texts.js                      messages of the code, in en/fr/de/es
 src/config.js                     DEFAULT_CONFIG (mirrors the manifest defaults) + normalization
-src/weather.js                    example driver (Open-Meteo)
 gladys-assistant-integration.json manifest: name, config_schema, actions, image...
-docs/en.md, docs/fr.md            user documentation, re-hosted by Gladys (mandatory)
-test/                             node --test, against the SDK's fake Gladys (integration-sdk/testing)
+docs/{en,fr,de,es}.md             user documentation, re-hosted by Gladys (same sections)
+test/                             node --test, against the SDK's fake Gladys and an in-memory aria2
+test/fixtures/aria2/              answers recorded from aria2 1.37.0 (anonymized)
+test/real.test.js                 `npm run test:real`: a real aria2, skipped without env
 .github/scripts/release.mjs       release helpers (manifest bump, changelog), tested in test/
 ```
 
@@ -70,8 +78,10 @@ test/                             node --test, against the SDK's fake Gladys (in
   `type: "provider"`: 5.1.0). `test/manifest.test.js` ties the manifest to the
   code (defaults, action, scene and widget handlers): change both sides
   together.
-- **User-facing text** is bilingual (English and French): action messages,
-  manifest texts, and `docs/en.md` / `docs/fr.md`, kept in sync.
+- **User-facing text** is in four languages (English, French, German with
+  "du", Spanish with "usted"): action messages, manifest texts, feature names,
+  widget texts, and `docs/en.md`, `fr.md`, `de.md`, `es.md`, kept in sync
+  (same sections). `test/i18n.test.js` checks it.
 - **Style.** Prettier formats, ESLint catches mistakes. Comments explain why,
   in English. Tests never touch the network.
 
@@ -233,3 +243,43 @@ long, et sur un « Sie »/« Ihr… » de politesse en allemand. Le store exige 
 - Docs `en`, `fr`, `de`, `es` avec les mêmes sections.
 - Chauffe, ouverture, sécurité : ne rien rendre pilotable « comme un thermostat » ou par un assistant
   vocal quand une erreur serait dangereuse (leçon d'OctoPrint).
+
+## Cette intégration : aria2
+
+Un seul serveur, un appareil, identité `aria2:server` (pas l'adresse : changer de port ou
+passer en HTTPS garde l'appareil). Lecture par le minuteur du hub (10 s à 2 min) en un seul
+`system.multicall`, plus une lecture une seconde après chaque rafale de notifications du
+WebSocket (même port et même chemin que le RPC). Les événements de scène viennent de la
+comparaison de deux lectures (par GID), jamais des notifications seules : une notification
+perdue n'est pas un événement perdu. `should_poll: false`, `onPoll` en repli. Aucune écriture
+sous `/data`. **Aucun chemin de code ne retire un téléchargement** (`test/hub.test.js` le
+vérifie).
+
+**Lancer un vrai aria2** (Alpine : `apk add aria2`) :
+`aria2c --enable-rpc --rpc-listen-all --rpc-secret=testsecret --dir=/downloads`, puis
+`ARIA2_URL=<hôte>:6800 ARIA2_SECRET=testsecret npm run test:real`. Pour servir des fichiers, un
+petit serveur HTTP Node suffit (un serveur sans `Range` fait échouer les reprises après pause,
+erreur 8 : utile pour le déclencheur d'erreur). Sur cette machine, `public.ecr.aws/.../alpine`
+s'est bloqué au téléchargement : partir de l'image `node:24-alpine` déjà présente.
+
+**Pièges relevés sur aria2 1.37.0**
+
+- Mauvais secret (ou absent) : HTTP **400** avec `{"error":{"code":1,"message":"Unauthorized"}}` ;
+  dans un `system.multicall`, HTTP 200 et l'erreur **dans le tableau des résultats** (pas de
+  `[résultat]`). Les deux cas sont traités.
+- Les notifications WebSocket partent vers **tous** les clients connectés, sans secret : le
+  WebSocket ne sert que de signal, la lecture reste authentifiée.
+- Un téléchargement en pause garde le dernier `downloadSpeed` connu, et `getGlobalStat`
+  aussi juste après `pauseAll` : ne pas s'en servir pour dire « actif ».
+- Un lien mort a `files[0].path` vide : le nom vient de l'URI. Un lien magnet commence par un
+  téléchargement `[METADATA]…` suivi (`followedBy`) du vrai : ne pas compter le premier.
+- Un torrent complet reste `active` tant qu'il partage, et passe `paused` après `pauseAll` :
+  compté « terminé » dans les deux cas, jamais « en attente ». Un GID n'est annoncé terminé
+  qu'une fois (revérification après redémarrage avec `--save-session`).
+- `tellStopped(0, n)` rend les résultats **les plus anciens** : lire avec l'offset `-1` (les plus
+  récents d'abord), sinon au-delà de 1000 résultats les nouveaux ne se voient plus.
+- `dir` d'`addUri` : refuser les caractères de contrôle (aria2 écrit ses options une par ligne
+  dans le fichier de session : un saut de ligne ajouterait une option).
+- `pauseAll` ne met en pause que l'existant : un lien ajouté ensuite démarre.
+- `max-overall-download-limit` se lit et s'écrit en octets/s (chaîne) ; les suffixes `K`/`M`
+  d'aria2 valent 1024, d'où l'envoi en octets.
